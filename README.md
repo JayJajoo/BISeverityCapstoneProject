@@ -1,7 +1,7 @@
 # Predicting Bodily Injury (BI) Severity, Litigation Risk & Attorney Involvement from Adjuster Notes
 
 **Author:** Jay Jajoo · Northeastern University capstone (Fall 2026)
-**Sponsor:** a New England auto insurer (data under NDA; not included in this repository)
+**Sponsor:** a New England auto insurer
 
 ---
 
@@ -39,9 +39,6 @@ the same rows, targets and split**, for attorney involvement, litigation and BI 
   46 words, but a claim's full history is long (median 26 notes per claim, about 1.4 years from first to last note).
 - **Base rates (coverage level):** attorney about 44%, litigation about 7%, severity buckets about
   60% / 16% / 12% / 8% / 3%.
-
-> **Data is confidential.** No raw data, notes or outputs are in this repo. All paths in the notebooks
-> come from `config.py` and are **placeholders**; set them to your own locations before running. Every claim, person and firm name shown in notebook outputs is redacted.
 
 ---
 

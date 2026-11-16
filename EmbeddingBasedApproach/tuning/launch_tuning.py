@@ -3,8 +3,8 @@
 Called from 05-Model-Training.ipynb, Step 4, after Steps 1-2 have built att_data / lit_data:
 
     from tuning.launch_tuning import upload_arrays, launch
-    launch('Attorney', 'attorney_v2', upload_arrays(att_data, 'Attorney'))
-    launch('Litigation', 'litigation_v1', upload_arrays(lit_data, 'Litigation'))
+    launch('Attorney', 'attorney', upload_arrays(att_data, 'Attorney'))
+    launch('Litigation', 'litigation', upload_arrays(lit_data, 'Litigation'))
 """
 import os
 import sys

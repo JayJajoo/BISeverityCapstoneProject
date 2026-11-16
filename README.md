@@ -165,6 +165,7 @@ the first try. Two independent runs agreed on **97.8%** of all feature values (n
 │   ├── 04-Embedding-Inference.ipynb
 │   ├── 05-Model-Training.ipynb
 │   └── tuning/                        ← Optuna tuning job (SageMaker) launched from 05
+│       └── README.md
 └── ManualFeatureBasedApproach/        ← Strategy B: LLM-extracted features
     ├── README.md
     └── 06-PromptFeatures.ipynb

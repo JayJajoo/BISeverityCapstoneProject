@@ -41,7 +41,7 @@ def load_split(channel_dir):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--target', required=True, choices=['Attorney', 'Litigation'])
-    ap.add_argument('--study-name', required=True)             # e.g. attorney_v2, litigation_v1
+    ap.add_argument('--study-name', required=True)             # e.g. attorney, litigation
     ap.add_argument('--n-trials', type=int, default=50)
     ap.add_argument('--max-epochs', type=int, default=60)
     ap.add_argument('--patience', type=int, default=8)

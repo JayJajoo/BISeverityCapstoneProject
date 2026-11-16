@@ -120,12 +120,14 @@ All scores are on the coverage-level snapshot rows and split from `02`. Severity
 | `launch_tuning.py` | `upload_arrays()` saves `X.npy` / `y.npy` / `cvg.npy` per split to S3. `launch()` starts a SageMaker PyTorch 2.6 job on `ml.g5.4xlarge` (24 h cap). |
 | `requirements.txt` | Extra packages installed in the training container (`optuna`, `scikit-learn`, `pandas`). |
 
+Full details (pseudocode, search space, outputs, how to run) are in [`tuning/README.md`](tuning/README.md).
+
 Run it from `05`, Step 4a:
 
 ```python
 from tuning.launch_tuning import upload_arrays, launch
-launch('Attorney', 'attorney_v2', upload_arrays(att_data, 'Attorney'))
-launch('Litigation', 'litigation_v1', upload_arrays(lit_data, 'Litigation'))
+launch('Attorney', 'attorney', upload_arrays(att_data, 'Attorney'))
+launch('Litigation', 'litigation', upload_arrays(lit_data, 'Litigation'))
 ```
 
 ---

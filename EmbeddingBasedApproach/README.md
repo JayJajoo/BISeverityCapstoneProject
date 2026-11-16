@@ -72,7 +72,42 @@ Run in order: **03 → 04 → 05**. Notebook `02` must already have been run.
 | Attorney | 0.500 | 0.461 | 0.818 |
 | Litigation | 0.449 | 0.465 | 0.762 |
 
-Attorney holdout Gini by cutoff day: 0.31 (day 1) → 0.39 (day 30) → 0.45 (day 90).
+#### Holdout Gini by snapshot day (Step 6)
+
+Day = days after the claim opened (`CLM_OPEN_DT + day`). Each row scores only the coverages still open and
+event-free on that day, using the notes written before it. Small late-day groups (for example attorney day 1,095
+with 20 positives, or litigation day 1,460 with 14) are noisy.
+
+**Attorney**
+
+| Snapshot day | Holdout snapshot rows | With event | Gini |
+|---|---|---|---|
+| 1 | 9,015 | 3,828 | 0.313 |
+| 7 | 8,030 | 3,229 | 0.337 |
+| 15 | 7,459 | 2,716 | 0.364 |
+| 30 | 6,571 | 1,968 | 0.392 |
+| 60 | 5,475 | 1,241 | 0.424 |
+| 90 | 4,818 | 956 | 0.446 |
+| 180 | 3,350 | 577 | 0.443 |
+| 365 | 1,816 | 296 | 0.454 |
+| 730 | 819 | 98 | 0.413 |
+| 1,095 | 429 | 20 | 0.542 |
+
+**Litigation**
+
+| Snapshot day | Holdout snapshot rows | With event | Gini |
+|---|---|---|---|
+| 1 | 9,997 | 1,141 | 0.368 |
+| 90 | 8,232 | 1,066 | 0.504 |
+| 180 | 6,923 | 1,015 | 0.525 |
+| 270 | 5,903 | 936 | 0.546 |
+| 365 | 4,987 | 823 | 0.544 |
+| 540 | 3,709 | 614 | 0.553 |
+| 730 | 2,428 | 291 | 0.571 |
+| 810 | 1,962 | 161 | 0.484 |
+| 900 | 1,610 | 95 | 0.386 |
+| 1,095 | 1,074 | 54 | 0.304 |
+| 1,460 | 486 | 14 | 0.344 |
 
 All scores are on the coverage-level snapshot rows and split from `02`. Severity is not trained in this notebook.
 

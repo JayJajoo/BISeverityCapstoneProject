@@ -113,8 +113,33 @@ Splitting by claim (not by coverage or snapshot) keeps shared note text from lea
 | Attorney | 0.461 | 0.818 |
 | Litigation | 0.465 | 0.762 |
 
-Holdout Gini for attorney rises with the cutoff day (0.31 at day 1 → 0.45 by day 90): the notes carry more
-signal as the claim develops. Severity on embeddings is not trained yet.
+**Holdout Gini by snapshot day** (Step 6 of `EmbeddingBasedApproach/05-Model-Training.ipynb`):
+
+| Snapshot day | Attorney Gini | Litigation Gini |
+|---|---|---|
+| 1 | 0.313 | 0.368 |
+| 7 | 0.337 | – |
+| 15 | 0.364 | – |
+| 30 | 0.392 | – |
+| 60 | 0.424 | – |
+| 90 | 0.446 | 0.504 |
+| 180 | 0.443 | 0.525 |
+| 270 | – | 0.546 |
+| 365 | 0.454 | 0.544 |
+| 540 | – | 0.553 |
+| 730 | 0.413 | 0.571 |
+| 810 | – | 0.484 |
+| 900 | – | 0.386 |
+| 1,095 | 0.542 | 0.304 |
+| 1,460 | – | 0.344 |
+
+Day = days after the claim opened (`CLM_OPEN_DT + day`); "–" means that day is not on that target's grid. Each row scores only the coverages still open and
+event-free on that day, using the notes written before it. Small late-day groups (for example attorney day 1,095
+with 20 positives, or litigation day 1,460 with 14) are noisy.
+
+Gini rises as the claim develops. Attorney goes from 0.31 on day 1 to about 0.45 by day 90, and litigation from
+0.37 on day 1 to 0.57 by day 730: the notes carry more signal the longer the claim runs. Severity on embeddings is
+not trained yet. Row and event counts per day are in `EmbeddingBasedApproach/README.md`.
 
 All scores are on the coverage-level snapshot rows and split from `02`.
 

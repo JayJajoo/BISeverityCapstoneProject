@@ -1,0 +1,19 @@
+# Core (01, 02, 03, 05)
+pandas>=2.2
+numpy>=1.26
+pyarrow>=16.0
+matplotlib>=3.8
+wordcloud>=1.9
+scikit-learn>=1.4
+boto3>=1.34
+jupyter
+
+# Strategy A: embeddings (04, 05)
+sagemaker>=2.230
+torch>=2.6
+optuna>=4.0
+# the endpoint container installs its own pinned versions from code/requirements.txt in 04:
+#   transformers==4.51.3, sentence-transformers==5.7.0, einops
+
+# Strategy B: LLM features (06), also needs a logged-in Claude Code install
+claude-agent-sdk==0.2.180

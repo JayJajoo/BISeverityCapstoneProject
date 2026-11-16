@@ -1,0 +1,26 @@
+# Confidential data (NDA): never commit
+TargetData/
+BI_Notes/
+*.parquet
+*.csv
+*.jsonl
+*.jsonl.out
+
+# Notebook 06 local outputs (raw notes + evidence quotes)
+ManualFeatureBasedApproach/data/
+ManualFeatureBasedApproach/output*/
+ManualFeatureBasedApproach/prompt_cache/
+
+# Notebook 04 generated handler package
+EmbeddingBasedApproach/code/
+*.tar.gz
+
+# Python / Jupyter
+__pycache__/
+.ipynb_checkpoints/
+.DS_Store
+.env
+
+# Presentation slides (not published)
+*.pdf
+*.npy

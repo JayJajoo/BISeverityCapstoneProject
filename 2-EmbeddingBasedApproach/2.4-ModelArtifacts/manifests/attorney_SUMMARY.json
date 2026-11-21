@@ -1,0 +1,27 @@
+{
+  "model": "Attorney",
+  "primary_metric": "gini",
+  "study": "attorney",
+  "n_trials": 50,
+  "best_trial": 42,
+  "best_val_metric": 0.3343556486085335,
+  "best_holdout_gini": 0.32614019165037833,
+  "best_holdout_qwk": NaN,
+  "best_params": {
+    "lr": 0.00011812629662092891,
+    "dropout": 0.6163649217860669,
+    "weight_decay": 7.4945047237189254e-06,
+    "noise_std": 0.003316713343204094,
+    "batch": 2048,
+    "fuse_dim": 512,
+    "dim_mean": 128,
+    "dim_max": 256,
+    "dim_min": 128,
+    "dim_sum": 192,
+    "dim_max_div_min": 256,
+    "dim_max_minus_min": 96,
+    "dim_first_div_last": 64,
+    "dim_first_minus_last": 128
+  },
+  "elapsed_sec": 9540.0
+}

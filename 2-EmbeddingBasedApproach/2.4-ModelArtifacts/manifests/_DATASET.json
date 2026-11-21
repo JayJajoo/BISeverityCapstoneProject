@@ -1,0 +1,132 @@
+{
+  "purpose": "Coverage-level (CLM_CVG_PK), day-grid-cutoff embedding snapshot datasets for Attorney/Litigation/Severity. Built directly from raw per-note embeddings (not the date-deduped running-feature store), one row per (CLM_CVG_PK, snapshot).",
+  "ported_from": "3.1-Dataset-Development.ipynb (boundary/margin-rule/day-grid logic; NOTE_TEXT replaced with embedding aggregates)",
+  "source_embeddings": "s3://<S3_BUCKET>/<EMBEDDING_PREFIX>/embeddings/",
+  "source_coverage_table": "s3://<S3_BUCKET>/<TARGET_DATA_PREFIX>/BI-Coverage-ALL-2015_2022.parquet",
+  "source_severity_table": "s3://<S3_BUCKET>/<TARGET_DATA_PREFIX>/Endpoint-Severity-2015_2022.parquet",
+  "split_table": "s3://<S3_BUCKET>/<CUTOFF_DATASET_PREFIX>/_SPLITS.parquet",
+  "keyword_registry": "s3://<S3_BUCKET>/<CUTOFF_DATASET_PREFIX>/_keyword_registry.parquet",
+  "boundary_rule": {
+    "Attorney": "ATTNY_DT if ATTNY_FLG==1 else CVG_CLOSE_DT",
+    "Litigation": "LITIG_DT if LITIG_FLG==1 else CVG_CLOSE_DT",
+    "Severity": "LAST_CLOSE_DT always"
+  },
+  "margin_rule": "strict '<' on boundary; if no note lands exactly on the boundary, drop ONLY the single latest still-included note (by note_id seq order) if its own text matched an event keyword; earlier same-date notes are never affected",
+  "day_grids": {
+    "Attorney": [
+      1,
+      7,
+      15,
+      30,
+      60,
+      90,
+      180,
+      365,
+      730,
+      1095
+    ],
+    "Litigation": [
+      1,
+      90,
+      180,
+      270,
+      365,
+      540,
+      730,
+      810,
+      900,
+      1095,
+      1460
+    ],
+    "Severity": [
+      1,
+      90,
+      180,
+      270,
+      365,
+      540,
+      730,
+      810,
+      900,
+      1095,
+      1460,
+      1825
+    ]
+  },
+  "dedup_rule": "day-grid snapshot skipped if its eligible note count is unchanged from the previous surviving snapshot, or if it would have 0 eligible notes",
+  "label_col": "label (int8): ATTNY_FLG/LITIG_FLG (0/1) for Attorney/Litigation; SEV_BUCKET (0-4) for Severity",
+  "features": [
+    "mean",
+    "max",
+    "min",
+    "sum",
+    "max_div_min",
+    "max_minus_min",
+    "first_div_last",
+    "first_minus_last"
+  ],
+  "embedding_dim": 1536,
+  "dtype": "float16",
+  "variations": [
+    {
+      "name": "mean",
+      "formula": "elementwise mean of the eligible notes' embeddings as of this cutoff"
+    },
+    {
+      "name": "max",
+      "formula": "elementwise max of the eligible notes' embeddings as of this cutoff"
+    },
+    {
+      "name": "min",
+      "formula": "elementwise min of the eligible notes' embeddings as of this cutoff"
+    },
+    {
+      "name": "sum",
+      "formula": "elementwise sum of the eligible notes' embeddings as of this cutoff"
+    },
+    {
+      "name": "max_div_min",
+      "formula": "elementwise max / min (safe-divide eps=1e-06, clipped to +-65504)"
+    },
+    {
+      "name": "max_minus_min",
+      "formula": "elementwise max - min (range)"
+    },
+    {
+      "name": "first_div_last",
+      "formula": "elementwise first / last (safe-divide eps=1e-06, clipped to +-65504)"
+    },
+    {
+      "name": "first_minus_last",
+      "formula": "elementwise first - last"
+    }
+  ],
+  "parquet_schema": {
+    "clm_cvg_pk": "int64",
+    "claim_num": "string",
+    "snapshot_num": "int32",
+    "snapshot_day": "int32",
+    "n_notes": "int32",
+    "label": "int8",
+    "features": "fixed_size_list<float16>[1536]"
+  },
+  "split_rule": "global claim-level stratified 70/15/15 (see _SPLITS.json); split is encoded by the {model}/{split}/ folder, not a column",
+  "stats": {
+    "Attorney": {
+      "cvgs_processed": 120502,
+      "rows": 466090,
+      "label_sum": 191778
+    },
+    "Litigation": {
+      "cvgs_processed": 129804,
+      "rows": 388956,
+      "label_sum": 64444
+    },
+    "Severity": {
+      "cvgs_processed": 132737,
+      "rows": 619029,
+      "label_sum": 646841
+    }
+  },
+  "created_utc": "2026-11-19T03:18:38.109199+00:00"
+}

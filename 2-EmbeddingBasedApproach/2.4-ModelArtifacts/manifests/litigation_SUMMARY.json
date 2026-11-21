@@ -1,0 +1,27 @@
+{
+  "model": "Litigation",
+  "primary_metric": "gini",
+  "study": "litigation",
+  "n_trials": 50,
+  "best_trial": 24,
+  "best_val_metric": 0.4792094406866638,
+  "best_holdout_gini": 0.48751581915131936,
+  "best_holdout_qwk": NaN,
+  "best_params": {
+    "lr": 0.00025348455308153386,
+    "dropout": 0.6370766276035313,
+    "weight_decay": 2.5340886370067765e-06,
+    "noise_std": 0.0076030890714675016,
+    "batch": 16384,
+    "fuse_dim": 256,
+    "dim_mean": 256,
+    "dim_max": 96,
+    "dim_min": 128,
+    "dim_sum": 192,
+    "dim_max_div_min": 64,
+    "dim_max_minus_min": 192,
+    "dim_first_div_last": 256,
+    "dim_first_minus_last": 192
+  },
+  "elapsed_sec": 8255.0
+}

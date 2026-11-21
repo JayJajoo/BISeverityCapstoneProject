@@ -6,13 +6,13 @@ BI_Notes/
 *.jsonl
 *.jsonl.out
 
-# Notebook 06 local outputs (raw notes + evidence quotes)
-ManualFeatureBasedApproach/data/
-ManualFeatureBasedApproach/output*/
-ManualFeatureBasedApproach/prompt_cache/
+# Notebook 3.2 local outputs (raw notes + evidence quotes)
+3-ManualFeatureBasedApproach/data/
+3-ManualFeatureBasedApproach/output*/
+3-ManualFeatureBasedApproach/prompt_cache/
 
-# Notebook 04 generated handler package
-EmbeddingBasedApproach/code/
+# Notebook 2.2.2 generated handler package
+2-EmbeddingBasedApproach/2.2-Embedding/code/
 *.tar.gz
 
 # Python / Jupyter
@@ -24,3 +24,7 @@ __pycache__/
 # Presentation slides (not published)
 *.pdf
 *.npy
+
+# Best-model predictions (real claim numbers) and archives
+2-EmbeddingBasedApproach/2.5-Results/predictions/
+*.zip

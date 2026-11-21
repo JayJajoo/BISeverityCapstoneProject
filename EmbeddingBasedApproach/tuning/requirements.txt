@@ -1,4 +1,0 @@
-# installed inside the SageMaker PyTorch 2.6 training container (torch, numpy and boto3 are already there)
-optuna>=4.0
-scikit-learn>=1.4
-pandas>=2.2

@@ -9,7 +9,24 @@ models (attorney, litigation, severity).
 received, reserve changes, and so on). Turning notes into those variables gives features a claims team can read
 and challenge, and avoids the "black box" problem of embeddings.
 
-## `06-PromptFeatures.ipynb`: feature-extraction pilot
+Run in order: **3.1 → 3.2**. Paths come from `config.py` at the repo root.
+
+## `3.1-Dataset-Development.ipynb`: leakage-safe snapshot datasets
+
+- Starts with high-level pseudocode, then implements the snapshot rules (see the root README, §3.1):
+  - per-model boundaries;
+  - the keyword-checked margin rule;
+  - the day grids from `1-EDA_Cleaned`;
+  - skipping snapshots with no new notes, or with no notes at all.
+- Tests: a unit check of the margin rule, the EDA sample claim, and 12 edge cases (sibling coverages with
+  different outcomes, long attorney and litigation lags, events that never happened).
+- Global claim-level stratified 70/15/15 split (seed 42), shared by all three targets.
+- Full build: caches all notes once, then builds the three models in parallel processes and writes parquet
+  batches to `{SNAPSHOT_PREFIX}/{Attorney|Litigation|Severity}/{train|val|holdout}/`.
+- Output schema: `CLM_CVG_PK, CLM_NUM, SNAPSHOT_NUM, SNAPSHOT_DAY, N_NOTES, NOTE_TEXT, TARGET` (or `TARGET_BUCKET`
+  for severity). `3.2` samples its pilot snapshots from these rows.
+
+## `3.2-PromptFeatures.ipynb`: feature-extraction pilot
 
 | Section | What it does |
 |---|---|
@@ -51,4 +68,4 @@ and challenge, and avoids the "black box" problem of embeddings.
 ### Next steps
 
 Scale extraction to the full train, val and holdout snapshot sets. Then train gradient-boosted or logistic models
-on the 171 features, and compare holdout Gini by cutoff day against Strategy A on the same rows.
+on the 171 features, and compare holdout Gini by cutoff day against Strategy A on the same holdout claims.

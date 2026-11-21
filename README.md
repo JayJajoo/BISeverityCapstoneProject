@@ -20,8 +20,8 @@ by hand. This project predicts three outcomes **from the adjuster notes alone, a
 Early, accurate flags let an insurer fast-track low-risk claims and send high-risk ones to legal review sooner.
 
 **What this project adds.** Prior work uses either note embeddings (Fursov et al., 2019) or LLM-extracted
-structure (Li et al., 2025) for insurance claims. This project compares **both strategies head-to-head on
-the same rows, targets and split**, for attorney involvement, litigation and BI severity.
+structure (Li et al., 2025) for insurance claims. This project compares **both strategies head-to-head with
+the same snapshot rules, targets and split**, for attorney involvement, litigation and BI severity.
 
 ---
 
@@ -46,13 +46,18 @@ the same rows, targets and split**, for attorney involvement, litigation and BI 
 
 ```mermaid
 flowchart LR
-    A[Raw adjuster notes<br/>+ target tables] --> B[01 EDA]
-    A --> C[02 Snapshot dataset<br/>leakage-safe cutoffs<br/>70/15/15 split by claim]
-    C --> D[Strategy A: Embeddings<br/>03 → 04 → 05]
-    C --> E[Strategy B: LLM features<br/>06]
+    A[Raw adjuster notes<br/>+ target tables] --> B[1 EDA<br/>sets the day grids]
+    A --> D[Strategy A: Embeddings<br/>2.1 dataset → 2.2 embed → 2.3 train<br/>→ 2.4 artifacts → 2.5 results]
+    A --> E[Strategy B: LLM features<br/>3.1 snapshot dataset → 3.2 prompt features]
+    B --> D
+    B --> E
     D --> F[Evaluation on the same<br/>holdout: Gini overall<br/>and by cutoff day]
     E --> F
 ```
+
+Both strategies build their rows with the same snapshot rules (§3.1) and the same claim-level split
+algorithm and seed (§3.2). Strategy A builds them in `2.1-DatasetDevelopment`, Strategy B in
+`3.1-Dataset-Development.ipynb`.
 
 ### 3.1 Framing: predict at a point in time, never after the event
 
@@ -83,12 +88,12 @@ Splitting by claim (not by coverage or snapshot) keeps shared note text from lea
 
 ### 3.3 Two feature strategies
 
-| | **A. Note embeddings** (`EmbeddingBasedApproach/`) | **B. LLM-extracted features** (`ManualFeatureBasedApproach/`) |
+| | **A. Note embeddings** (`2-EmbeddingBasedApproach/`) | **B. LLM-extracted features** (`3-ManualFeatureBasedApproach/`) |
 |---|---|---|
 | Idea | Embed each note once, then summarize the running history numerically | Have an LLM read the snapshot like a senior analyst and answer fixed questions |
 | Model | `Alibaba-NLP/gte-Qwen2-1.5B-instruct` (1,536-dim) on SageMaker | Claude Opus 5.5 through the Claude Agent SDK, structured JSON output |
-| Features | 8 running summaries per claim (mean, max, min, sum, max÷min, max−min, first÷last, first−last) | 171 interpretable features (A01–A59 attorney, L01–L69 litigation, S01–S43 severity), each with an evidence quote |
-| Downstream model | Multi-branch neural net (one encoder per summary → fusion → MLP), tuned with Optuna | To be trained on the extracted features (pilot stage) |
+| Features | 8 summaries of the note embeddings at each cutoff (mean, max, min, sum, max÷min, max−min, first÷last, first−last) | 171 interpretable features (A01–A59 attorney, L01–L69 litigation, S01–S43 severity), each with an evidence quote |
+| Downstream model | Multi-branch neural net (`CutoffNet`: one encoder per summary → fusion → MLP), tuned with Optuna; attorney, litigation and severity | To be trained on the extracted features (pilot stage) |
 | Strengths | Cheap per note; scales to 4.65M notes | Interpretable, auditable features; domain-aware |
 
 ### 3.4 Evaluation
@@ -98,7 +103,11 @@ Splitting by claim (not by coverage or snapshot) keeps shared note text from lea
   rank claims for triage.
 - **Gini by cutoff day** on the holdout: shows how early a useful signal appears, which is the business question.
 - **Row-level Gini** (every snapshot) and **last-snapshot Gini** (each coverage's latest snapshot).
-- **Holdout is used once**, for final reporting. Model selection uses validation Gini only.
+- **Severity** (5 ordered bands): an **ordinal Gini** (the 4 cumulative "band ≥ k" Ginis, averaged with
+  weights min(positives, negatives)) and **quadratic-weighted kappa (QWK)**, which checks that the predicted band
+  itself is right and penalizes predictions that are further off more.
+- **Holdout is used once**, for final reporting. Model selection uses validation only (Gini; QWK for the
+  QWK-selected severity model).
 - For strategy B, also: **schema validity** (every value checked exactly against its allowed list),
   **run-to-run stability** (share of identical values across two runs), and **cost per snapshot**.
 
@@ -106,42 +115,55 @@ Splitting by claim (not by coverage or snapshot) keeps shared note text from lea
 
 ## 4. Results so far
 
-**Strategy A, embeddings (holdout Gini):**
+**Strategy A, embeddings** (`2-EmbeddingBasedApproach/2.5-Results/2.5.1-Results-Visualization.ipynb`):
 
-| Target | Row-level (all snapshots) | Last snapshot per coverage |
-|---|---|---|
-| Attorney | 0.461 | 0.818 |
-| Litigation | 0.465 | 0.762 |
+| Study | Best trial | Val Gini | Holdout Gini (all snapshots) | Holdout Gini (last snapshot) | Holdout QWK |
+|---|---|---|---|---|---|
+| Attorney | 42 | 0.334 | 0.326 | 0.407 | – |
+| Litigation | 24 | 0.479 | 0.488 | 0.697 | – |
+| Severity, selected on Gini | 32 | 0.563 | 0.569 | 0.752 | 0.402 |
+| Severity, selected on QWK | 23 | 0.425 (QWK) | 0.546 | 0.730 | 0.430 |
 
-**Holdout Gini by snapshot day** (Step 6 of `EmbeddingBasedApproach/05-Model-Training.ipynb`):
+**Holdout Gini by snapshot day:**
 
-| Snapshot day | Attorney Gini | Litigation Gini |
-|---|---|---|
-| 1 | 0.313 | 0.368 |
-| 7 | 0.337 | – |
-| 15 | 0.364 | – |
-| 30 | 0.392 | – |
-| 60 | 0.424 | – |
-| 90 | 0.446 | 0.504 |
-| 180 | 0.443 | 0.525 |
-| 270 | – | 0.546 |
-| 365 | 0.454 | 0.544 |
-| 540 | – | 0.553 |
-| 730 | 0.413 | 0.571 |
-| 810 | – | 0.484 |
-| 900 | – | 0.386 |
-| 1,095 | 0.542 | 0.304 |
-| 1,460 | – | 0.344 |
+| Snapshot day | Attorney | Litigation | Severity (Gini-selected) | Severity (QWK-selected) |
+|---|---|---|---|---|
+| 1 | 0.239 | 0.311 | 0.289 | 0.225 |
+| 7 | 0.272 | – | – | – |
+| 15 | 0.273 | – | – | – |
+| 30 | 0.315 | – | – | – |
+| 60 | 0.406 | – | – | – |
+| 90 | 0.459 | 0.418 | 0.545 | 0.525 |
+| 180 | 0.501 | 0.469 | 0.598 | 0.580 |
+| 270 | – | 0.469 | 0.605 | 0.592 |
+| 365 | 0.599 | 0.450 | 0.607 | 0.596 |
+| 540 | – | 0.466 | 0.602 | 0.587 |
+| 730 | 0.556 | 0.505 | 0.600 | 0.591 |
+| 810 | – | 0.460 | 0.608 | 0.592 |
+| 900 | – | 0.454 | 0.599 | 0.580 |
+| 1,095 | 0.719 | 0.407 | 0.624 | 0.604 |
+| 1,460 | – | 0.167 | 0.616 | 0.589 |
+| 1,825 | – | – | 0.565 | 0.552 |
 
-Day = days after the claim opened (`CLM_OPEN_DT + day`); "–" means that day is not on that target's grid. Each row scores only the coverages still open and
-event-free on that day, using the notes written before it. Small late-day groups (for example attorney day 1,095
-with 20 positives, or litigation day 1,460 with 14) are noisy.
+![Attorney and litigation Gini by snapshot day](2-EmbeddingBasedApproach/2.5-Results/figures/gini_by_day_attorney_litigation.png)
 
-Gini rises as the claim develops. Attorney goes from 0.31 on day 1 to about 0.45 by day 90, and litigation from
-0.37 on day 1 to 0.57 by day 730: the notes carry more signal the longer the claim runs. Severity on embeddings is
-not trained yet. Row and event counts per day are in `EmbeddingBasedApproach/README.md`.
+![Severity Gini and QWK by snapshot day](2-EmbeddingBasedApproach/2.5-Results/figures/severity_by_day.png)
 
-All scores are on the coverage-level snapshot rows and split from `02`.
+Day = days after the claim opened (`CLM_OPEN_DT + day`); "–" means that day is not on that target's grid. Each
+row scores only the coverages still open and event-free on that day, using the notes written before it. Small
+late-day groups are noisy, for example attorney day 1,095 with 43 positives or litigation day 1,460 with 16.
+
+- The signal grows as the claim develops. Attorney goes from 0.24 on day 1 to 0.60 by day 365, and severity from
+  0.29 to 0.55 by day 90.
+- Severity is the strongest model. Selecting on QWK gives up a little ranking (Gini 0.546 vs 0.569) for better
+  band agreement (QWK 0.430 vs 0.402).
+- Litigation is the strongest binary model (test Gini 0.488 on all rows, 0.697 at the last snapshot).
+- Attorney is the weakest: most of its rows fall in the first 30 days, when few notes exist.
+- Validation and holdout agree within 0.01 for every study.
+
+Row and event counts per day are in `2-EmbeddingBasedApproach/README.md`. The results notebook in
+`2-EmbeddingBasedApproach/2.5-Results/` also has the severity confusion matrices by cutoff day and decile tables by
+cutoff day (with a day slider) for all four models, including the severity Gini at each band threshold.
 
 **Strategy B, LLM features (100-snapshot pilot from train):** 100 of 100 snapshots returned valid outputs on
 the first try. Two independent runs agreed on **97.8%** of all feature values (none of the 171 features below
@@ -157,23 +179,23 @@ the first try. Two independent runs agreed on **97.8%** of all feature values (n
 ├── config.py                          ← all paths and storage settings (edit before running)
 ├── requirements.txt                   ← Python dependencies
 ├── .gitignore                         ← keeps confidential data and outputs out of git
-├── 01-EDA_Cleaned.ipynb               ← exploratory data analysis
-├── 02-Dataset-Development.ipynb       ← leakage-safe snapshot datasets + global split (feeds both strategies)
-├── EmbeddingBasedApproach/            ← Strategy A: note embeddings → neural net
+├── 1-EDA_Cleaned.ipynb                ← exploratory data analysis (sets the day grids)
+├── 2-EmbeddingBasedApproach/          ← Strategy A: note embeddings → neural net
 │   ├── README.md
-│   ├── 03-Embedding-Dataset-Formation.ipynb
-│   ├── 04-Embedding-Inference.ipynb
-│   ├── 05-Model-Training.ipynb
-│   └── tuning/                        ← Optuna tuning job (SageMaker) launched from 05
-│       └── README.md
-└── ManualFeatureBasedApproach/        ← Strategy B: LLM-extracted features
+│   ├── 2.1-DatasetDevelopment/        ← 2.1.1 keyword registry, 2.1.2 global split, 2.1.3 cutoff datasets
+│   ├── 2.2-Embedding/                 ← 2.2.1 note preparation, 2.2.2 embedding inference (notebooks)
+│   ├── 2.3-ModelTraining/             ← 2.3.1 SageMaker launcher, 2.3.2 Optuna tuning, CutoffNet + training loop
+│   ├── 2.4-ModelArtifacts/            ← best checkpoint per study + dataset / split / study manifests
+│   └── 2.5-Results/                   ← 2.5.1 results notebook (Gini by day, confusion, decile tables), figures
+└── 3-ManualFeatureBasedApproach/      ← Strategy B: LLM-extracted features
     ├── README.md
-    └── 06-PromptFeatures.ipynb
+    ├── 3.1-Dataset-Development.ipynb  ← leakage-safe snapshot datasets (note text) + global split
+    └── 3.2-PromptFeatures.ipynb       ← 100-snapshot feature-extraction pilot
 ```
 
-### Top-level notebooks
+### Notebooks
 
-**`01-EDA_Cleaned.ipynb`: exploratory data analysis**
+**`1-EDA_Cleaned.ipynb`: exploratory data analysis**
 - Two worked example claims (one with attorney and litigation), printed note by note with a plain-English
   walkthrough, to show what the notes contain and where the attorney and litigation dates fall.
 - Corpus-wide statistics over all 4.65M notes: words and characters per note, notes per claim, claim duration,
@@ -181,15 +203,15 @@ the first try. Two independent runs agreed on **97.8%** of all feature values (n
 - Target analysis: attorney and litigation rate and severity mix by claim-open year, by severity bucket, by
   `ORG_GROUP_NAME` (Direct vs. Independent) and by loss state.
 - Time to event: days from claim open to attorney, to litigation and to close. These results set the day grids
-  used in `02`.
+  used in `3.1-Dataset-Development`.
 
-**`02-Dataset-Development.ipynb`: snapshot dataset construction**
+**`3-ManualFeatureBasedApproach/3.1-Dataset-Development.ipynb`: snapshot dataset construction (Strategy B)**
 - Starts with high-level pseudocode, then implements the rules in §3.1: per-model boundaries, keyword-checked margin rule, day grids, dedup and 0-note skip.
 - Unit check of the margin rule, a test on the EDA sample claim and on 12 edge cases (sibling coverages with
   different outcomes, long attorney and litigation lags, events that never happened).
 - Global claim-level stratified split (§3.2).
 - Full build: caches all notes once, then runs the three models in parallel processes and writes parquet batches
-  to `{S3_PREFIX}/{Attorney|Litigation|Severity}/{train|val|holdout}/`.
+  to `{SNAPSHOT_PREFIX}/{Attorney|Litigation|Severity}/{train|val|holdout}/`.
 - Output schema: `CLM_CVG_PK, CLM_NUM, SNAPSHOT_NUM, SNAPSHOT_DAY, N_NOTES, NOTE_TEXT, TARGET` (or
   `TARGET_BUCKET` for severity).
 
@@ -197,18 +219,23 @@ the first try. Two independent runs agreed on **97.8%** of all feature values (n
 
 ## 6. How to reproduce
 
-**Run order:** `01` (optional) → `02` → **either** `03 → 04 → 05` (Strategy A) **or** `06` (Strategy B).
-`02` must run first; both strategies read its snapshot rows and split.
+**Run order:** `1-EDA_Cleaned` (optional), then either strategy; the two are independent.
+- **Strategy A** (`2-EmbeddingBasedApproach/`, one folder per step): `2.1-DatasetDevelopment/2.1.1-build_keyword_registry.py`
+  → `2.1.2-assign_global_splits.py` → `2.2-Embedding/2.2.1` → `2.2.2` → `2.1-DatasetDevelopment/2.1.3-build_cutoff_dataset.py` →
+  `2.3-ModelTraining/2.3.1-launch_sagemaker.py` (once per study) → `2.5-Results/2.5.1-Results-Visualization.ipynb`.
+- **Strategy B** (`3-ManualFeatureBasedApproach/`): `3.1-Dataset-Development.ipynb` → `3.2-PromptFeatures.ipynb`
+  (which reads 3.1's snapshot rows).
 
 **Environment**
 - Python 3.12; `pandas`, `numpy`, `pyarrow`, `matplotlib`, `wordcloud`, `boto3`, `scikit-learn`
-- Strategy A: `torch`, `optuna`, `sagemaker`. The endpoint pins `transformers==4.51.3` and `sentence-transformers==5.7.0`
+- Strategy A: `torch`, `optuna`, `orjson`, `sagemaker` (SDK v2 for the `2.2.2` endpoint, SDK v3 `ModelTrainer` for
+  `2.3.1-launch_sagemaker.py`). The endpoint pins `transformers==4.51.3` and `sentence-transformers==5.7.0`
 - Strategy B: `claude-agent-sdk==0.2.180` and a logged-in Claude Code install
-- Compute used: `02` on a 16-core, 54 GB RAM machine (about 15 min for all three models); `04` on 4 × `ml.g5.xlarge`
-  (budget cap $100); `05` tuning on `ml.g5.4xlarge`
+- Compute used: `3.1-Dataset-Development` on a 16-core, 54 GB RAM machine (about 15 min for all three models); `2.2.2` on 4 × `ml.g5.xlarge`
+  (budget cap $100); tuning on one `ml.g5.4xlarge` per study (2.3 to 5.8 h per study)
 
 **Before running:** edit **`config.py`** (the only file with paths): local data folders, S3 bucket and prefixes,
-AWS region and SageMaker role ARN. Every notebook imports its paths from it. Install packages with
+AWS region and SageMaker role ARN. Every notebook and script imports its paths from it. Install packages with
 `pip install -r requirements.txt`.
 
 **Determinism:** all sampling and splitting uses `seed=42` (`numpy.random.default_rng`, `torch.manual_seed`).

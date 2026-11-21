@@ -1,0 +1,30 @@
+{
+  "rule": "global claim-level stratified split, ported from 3.1-Dataset-Development.ipynb::assign_global_claim_splits",
+  "stratify_keys": [
+    "ORG_GROUP_NAME",
+    "POL_STATE",
+    "LOSS_YEAR",
+    "max(ATTNY_FLG)",
+    "max(LITIG_FLG)",
+    "max(SEV_BUCKET)"
+  ],
+  "seed": 42,
+  "fracs": {
+    "train": 0.7,
+    "val": 0.15,
+    "holdout": 0.15
+  },
+  "small_stratum_rule": "strata with <3 claims forced entirely to train",
+  "n_claims": 115897,
+  "n_closed_coverages": 167726,
+  "n_strata": 956,
+  "n_small_strata_forced_train": 146,
+  "split_sizes_claims": {
+    "train": 81212,
+    "val": 17418,
+    "holdout": 17267
+  },
+  "source_coverage_table": "s3://<S3_BUCKET>/<TARGET_DATA_PREFIX>/BI-Coverage-ALL-2015_2022.parquet",
+  "source_severity_table": "s3://<S3_BUCKET>/<TARGET_DATA_PREFIX>/Endpoint-Severity-2015_2022.parquet",
+  "created_utc": "2026-11-19T02:36:07.298851+00:00"
+}

@@ -1,4 +1,4 @@
-# Core (01, 02, 03, 05)
+# Core (1, 2.1.x scripts, 2.2.1, 2.5.1, 3.1)
 pandas>=2.2
 numpy>=1.26
 pyarrow>=16.0
@@ -8,12 +8,16 @@ scikit-learn>=1.4
 boto3>=1.34
 jupyter
 
-# Strategy A: embeddings (04, 05)
-sagemaker>=2.230
+# Strategy A: embeddings
+orjson>=3.9                 # 2.1-DatasetDevelopment/2.1.3-build_cutoff_dataset.py
 torch>=2.6
 optuna>=4.0
-# the endpoint container installs its own pinned versions from code/requirements.txt in 04:
+# 2.2.2 deploys the endpoint with the SageMaker SDK v2 (HuggingFaceModel); 2.3-ModelTraining/2.3.1-launch_sagemaker.py
+# uses SDK v3 (ModelTrainer). Install the one you need: pip install 'sagemaker>=2.230,<3'  or  'sagemaker>=3'
+sagemaker>=2.230
+# the tuning job installs its own packages from 2.3-ModelTraining/requirements.txt
+# the endpoint container installs its own pinned versions from code/requirements.txt, written by 2.2.2:
 #   transformers==4.51.3, sentence-transformers==5.7.0, einops
 
-# Strategy B: LLM features (06), also needs a logged-in Claude Code install
+# Strategy B: LLM features (3.1, 3.2), also needs a logged-in Claude Code install
 claude-agent-sdk==0.2.180

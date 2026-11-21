@@ -1,0 +1,27 @@
+{
+  "model": "Severity",
+  "primary_metric": "qwk",
+  "study": "severity_qwk",
+  "n_trials": 50,
+  "best_trial": 23,
+  "best_val_metric": 0.4247416799700564,
+  "best_holdout_gini": 0.5463608587785005,
+  "best_holdout_qwk": 0.429807830899406,
+  "best_params": {
+    "lr": 0.0012036020652226485,
+    "dropout": 0.6983583713523206,
+    "weight_decay": 0.0025849278300101534,
+    "noise_std": 0.0454281513243176,
+    "batch": 512,
+    "fuse_dim": 512,
+    "dim_mean": 96,
+    "dim_max": 128,
+    "dim_min": 64,
+    "dim_sum": 96,
+    "dim_max_div_min": 96,
+    "dim_max_minus_min": 64,
+    "dim_first_div_last": 128,
+    "dim_first_minus_last": 128
+  },
+  "elapsed_sec": 20712.0
+}

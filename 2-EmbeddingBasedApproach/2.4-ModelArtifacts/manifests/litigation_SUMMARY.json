@@ -6,7 +6,7 @@
   "best_trial": 24,
   "best_val_metric": 0.4792094406866638,
   "best_holdout_gini": 0.48751581915131936,
-  "best_holdout_qwk": NaN,
+  "best_holdout_qwk": null,
   "best_params": {
     "lr": 0.00025348455308153386,
     "dropout": 0.6370766276035313,

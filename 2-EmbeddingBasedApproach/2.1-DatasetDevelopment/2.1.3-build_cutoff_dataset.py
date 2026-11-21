@@ -133,7 +133,12 @@ def parse_shard(key, sample):
             line = line.strip()
             if not line:
                 continue
-            r = orjson.loads(line)
+            try:
+                r = orjson.loads(line)
+            except orjson.JSONDecodeError:   # e.g. a bare NaN token; the standard json module accepts it
+                r = json.loads(line)
+            if not isinstance(r.get("date"), str):   # note without a readable date: it cannot be placed in time
+                continue
             np.asarray(r["embedding"], dtype=np.float16).tofile(fh)
             claims.append(r["claim_num"])
             dates.append(r["date"])

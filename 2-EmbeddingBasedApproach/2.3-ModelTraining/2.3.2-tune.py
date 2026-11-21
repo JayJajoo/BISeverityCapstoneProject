@@ -49,6 +49,17 @@ BATCH_CHOICES = [32, 128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32768]
 NUM_CLASSES = {"Attorney": 1, "Litigation": 1, "Severity": 5}
 
 
+def json_safe(o):
+    # NaN / inf are not valid JSON (e.g. holdout_qwk for the binary studies): write them as null
+    if isinstance(o, float) and not np.isfinite(o):
+        return None
+    if isinstance(o, dict):
+        return {k: json_safe(v) for k, v in o.items()}
+    if isinstance(o, (list, tuple)):
+        return [json_safe(v) for v in o]
+    return o
+
+
 def s3_put_bytes(s3, key, b):
     s3.put_object(Bucket=D.BUCKET, Key=key, Body=b)
 
@@ -179,11 +190,11 @@ def main():
                     "primary_metric": args.primary_metric, "val_metric": res["best_metric"],
                     "holdout_gini": ho_gini, "holdout_qwk": ho_qwk, "cvg_gini": cvg_g}, ckpt)
         s3_upload(s3, ckpt, f"{run_prefix}/checkpoints/trial_{trial.number}.pt")
-        s3_put_bytes(s3, f"{run_prefix}/trials/trial_{trial.number}.json", json.dumps(
+        s3_put_bytes(s3, f"{run_prefix}/trials/trial_{trial.number}.json", json.dumps(json_safe(
             {"trial": trial.number, "model": args.model, "primary_metric": args.primary_metric,
              "params": trial.params, "val_metric": res["best_metric"], "holdout_gini": ho_gini,
              "holdout_qwk": ho_qwk, "cvg_gini": cvg_g, "best_epoch": res["best_epoch"],
-             "history": res["history"]}, indent=2, default=str).encode())
+             "history": res["history"]}), indent=2, default=str).encode())
         if res["best_metric"] > best_metric_global[0]:
             best_metric_global[0] = res["best_metric"]
             s3_upload(s3, ckpt, f"{run_prefix}/best/model.pt")
@@ -204,7 +215,7 @@ def main():
                "best_holdout_gini": best.user_attrs.get("holdout_gini"),
                "best_holdout_qwk": best.user_attrs.get("holdout_qwk"),
                "best_params": best.params, "elapsed_sec": round(time.time() - t0, 0)}
-    s3_put_bytes(s3, f"{run_prefix}/_SUMMARY.json", json.dumps(summary, indent=2).encode())
+    s3_put_bytes(s3, f"{run_prefix}/_SUMMARY.json", json.dumps(json_safe(summary), indent=2).encode())
     sync_cb(None, None)
     print("\nDONE:", json.dumps(summary, indent=2), flush=True)
     print(f"best model -> s3://{D.BUCKET}/{run_prefix}/best/model.pt", flush=True)

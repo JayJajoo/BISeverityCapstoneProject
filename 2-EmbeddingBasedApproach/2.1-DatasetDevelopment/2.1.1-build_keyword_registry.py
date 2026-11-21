@@ -6,17 +6,20 @@ text matches each model's event-keyword regex (Attorney/Litigation/Severity).
 This lets the margin rule run later without re-reading the raw BI_Notes CSVs or
 holding any note text in memory -- only (seq -> 3 booleans).
 
-seq is a pure row-order counter across files processed in sorted glob order; it
-does not depend on chunking, so each file's seq range is just its cumulative
-row-count offset. Files are independent -> processed in parallel. Within a
-file, keyword matching is vectorized with pandas .str.contains, so all 4.6M
-notes are flagged in a few minutes.
+seq is the row number across all files read in sorted order, counted on the rows
+pandas parses (the same read_csv call as 2.2.1), so it matches note_id even when a
+note contains line breaks. Files are processed in parallel and then concatenated
+in file order, and seq is assigned after that. Text is cleaned the same way as
+clean_note in 3.1-Dataset-Development.ipynb (<br> to newline, tags removed, HTML
+entities decoded). Keyword matching is vectorized with pandas .str.contains, so all
+4.6M notes are flagged in a few minutes.
 
 Output: {TMP_DIR}/_keyword_registry.parquet and s3://{S3_BUCKET}/{CUTOFF_DATASET_PREFIX}/_keyword_registry.parquet
 (set in config.py), with columns [seq, claim_num, date, kw_attorney,
 kw_litigation, kw_severity].
 """
 import glob
+import html
 import os
 import re
 import sys
@@ -44,16 +47,15 @@ KEYWORDS = {
 }
 
 
-def process_file(args):
-    fpath, seq_offset = args
+def process_file(fpath):
     df = pd.read_csv(fpath, usecols=["CLAIM_NUM", "DATE", "TEXT_NOTE"], dtype={"CLAIM_NUM": str})
     df["DATE"] = pd.to_datetime(df["DATE"], errors="coerce").dt.strftime("%Y-%m-%d")
     text = df["TEXT_NOTE"].fillna("").astype(str)
     text = text.str.replace(BR_RE, "\n", regex=True)
     text = text.str.replace(TAG_RE, "", regex=True)
+    text = text.map(html.unescape)          # e.g. 'S&amp;C' -> 'S&C', as in 3.1's clean_note
 
     out = pd.DataFrame({
-        "seq": range(seq_offset, seq_offset + len(df)),
         "claim_num": df["CLAIM_NUM"].values,
         "date": df["DATE"].values,
         "kw_attorney": text.str.contains(KEYWORDS["attorney"], regex=True).values,
@@ -67,19 +69,15 @@ def main():
     files = sorted(glob.glob(os.path.join(DATA_DIR, "batch_*.csv")))   # same files and order as 2.2.1
     print(f"{len(files)} BI_Notes files found", flush=True)
 
-    counts = [int(os.popen(f"wc -l < {f!r}").read().strip()) - 1 for f in files]
-    offsets = [0]
-    for c in counts[:-1]:
-        offsets.append(offsets[-1] + c)
-
     results = {}
     with ProcessPoolExecutor(max_workers=8) as ex:
-        for name, out in ex.map(process_file, zip(files, offsets)):
+        for name, out in ex.map(process_file, files):
             results[name] = out
             print(f"  done {name}: {len(out):,} rows", flush=True)
 
     ordered = [results[os.path.basename(f)] for f in files]
     full = pd.concat(ordered, ignore_index=True)
+    full.insert(0, "seq", range(len(full)))   # row number over all files = the seq in 2.2.1's note_id
     print(f"total rows: {len(full):,}", flush=True)
 
     tbl = pa.Table.from_pandas(full, preserve_index=False)
